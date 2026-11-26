@@ -33,6 +33,8 @@ interface FeedbackButtonProps {
 export default function FeedbackButton({ variant }: FeedbackButtonProps) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [emailConsent, setEmailConsent] = useState(false);
+  const [website, setWebsite] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<FeedbackType>('bug');
@@ -42,6 +44,8 @@ export default function FeedbackButton({ variant }: FeedbackButtonProps) {
 
   function resetForm() {
     setEmail('');
+    setEmailConsent(false);
+    setWebsite('');
     setTitle('');
     setDescription('');
     setType('bug');
@@ -64,6 +68,12 @@ export default function FeedbackButton({ variant }: FeedbackButtonProps) {
       return;
     }
 
+    if (email.trim() && !emailConsent) {
+      setFormState('error');
+      setErrorMessage('Geef toestemming om je e-mailadres openbaar te tonen, of laat het veld leeg.');
+      return;
+    }
+
     setFormState('submitting');
     setErrorMessage('');
 
@@ -71,7 +81,14 @@ export default function FeedbackButton({ variant }: FeedbackButtonProps) {
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() || undefined, title: title.trim(), description: description.trim(), type }),
+        body: JSON.stringify({
+          email: email.trim() || undefined,
+          emailConsent: email.trim() ? emailConsent : undefined,
+          title: title.trim(),
+          description: description.trim(),
+          type,
+          website,
+        }),
       });
 
       const data = await res.json();
@@ -141,7 +158,8 @@ export default function FeedbackButton({ variant }: FeedbackButtonProps) {
         <DialogHeader>
           <DialogTitle>Feedback Geven</DialogTitle>
           <DialogDescription>
-            Meld een bug, doe een suggestie, of stel een vraag.
+            Meld een bug, doe een suggestie, of stel een vraag. Je bericht komt als openbare melding op GitHub.
+            Zet geen persoonsgegevens in je bericht.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,6 +193,31 @@ export default function FeedbackButton({ variant }: FeedbackButtonProps) {
                 placeholder="naam@voorbeeld.nl"
                 maxLength={256}
                 disabled={formState === 'submitting'}
+              />
+              {email.trim() && (
+                <label className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={emailConsent}
+                    onChange={(e) => setEmailConsent(e.target.checked)}
+                    disabled={formState === 'submitting'}
+                    className="mt-0.5 size-4 shrink-0 accent-primary"
+                  />
+                  <span>Mijn e-mailadres mag openbaar in de melding op GitHub staan, zodat het team contact kan opnemen.</span>
+                </label>
+              )}
+            </div>
+
+            {/* Honeypot: hidden from people, filled in by bots. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+              <label htmlFor="feedback-website">Website</label>
+              <input
+                id="feedback-website"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
               />
             </div>
 
